@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Magic Christmas - Grand Luxury</title>
+    <title>Magic Christmas - Personalized</title>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,7 +28,7 @@
         body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Inter', sans-serif; user-select: none; }
         #canvas-container { width: 100%; height: 100vh; display: block; }
         
-        /* Intro Screen - Grand Style */
+        /* Intro Screen */
         #intro-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(circle at center, #1a1500 0%, #000000 100%); 
@@ -37,15 +37,59 @@
         }
         #loading-text {
             color: #D4AF37; font-family: 'Cinzel', serif; font-size: 28px; letter-spacing: 6px;
-            margin-bottom: 40px; text-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+            margin-bottom: 30px; text-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
             animation: breathe 3s infinite ease-in-out;
         }
         @keyframes breathe { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; text-shadow: 0 0 25px rgba(212, 175, 55, 0.8); } }
 
-        #error-msg {
-            color: #FF5252; font-weight: bold; margin-top: 15px; display: none; font-size: 14px;
-            background: rgba(0,0,0,0.8); padding: 20px; border-radius: 4px; border: 1px solid #FF5252;
+        /* Name Input Styles */
+        #name-input-container {
+            display: flex; flex-direction: column; gap: 20px; align-items: center;
+            opacity: 0; animation: fadeIn 1s forwards 0.5s; /* Fade in animation */
         }
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        #user-name-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #D4AF37;
+            border-radius: 30px;
+            padding: 15px 30px;
+            color: #FFD700;
+            font-family: 'Cinzel', serif;
+            font-size: 18px;
+            text-align: center;
+            width: 250px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        #user-name-input::placeholder { color: rgba(212, 175, 55, 0.5); }
+        #user-name-input:focus { background: rgba(255, 255, 255, 0.1); box-shadow: 0 0 15px rgba(212, 175, 55, 0.3); }
+
+        #confirm-name-btn {
+            background: linear-gradient(135deg, #D32F2F, #8B0000);
+            border: 1px solid #FFD700;
+            color: white;
+            padding: 12px 40px;
+            border-radius: 30px;
+            font-family: 'Cinzel', serif;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase; letter-spacing: 2px;
+        }
+        #confirm-name-btn:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(211, 47, 47, 0.6); }
+
+        /* Error Message */
+        #error-msg {
+            color: #FF5252; font-weight: bold; margin-top: 20px; display: none; font-size: 14px;
+            background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; border: 1px solid #FF5252;
+            max-width: 400px; line-height: 1.5;
+        }
+        #try-again-btn {
+            background: transparent; border: 1px solid #FF5252; color: #FF5252;
+            margin-top: 10px; padding: 8px 20px; border-radius: 20px; cursor: pointer;
+        }
+        #try-again-btn:hover { background: #FF5252; color: white; }
 
         /* Mode Selection Buttons */
         .mode-container { display: none; gap: 30px; flex-wrap: wrap; justify-content: center;}
@@ -133,8 +177,16 @@
 <body>
 
     <div id="intro-screen">
-        <div id="loading-text">MEMORIES LOADING...</div>
+        <div id="loading-text">WHO IS THIS GIFT FOR?</div>
+        
+        <!-- Input Tên -->
+        <div id="name-input-container">
+            <input type="text" id="user-name-input" placeholder="Enter name (e.g. Linh)" onkeypress="handleEnter(event)">
+            <button id="confirm-name-btn" onclick="processUserName()">OPEN GIFT 🎁</button>
+        </div>
+
         <div id="error-msg"></div>
+        
         <div class="mode-container" id="mode-selection">
             <div class="mode-btn" onclick="startApp('camera')">
                 <h3>Gesture Control</h3>
@@ -179,16 +231,54 @@
         let loadedPhotos = []; 
         let inputMode = 'none'; 
         let cameraObj = null;
+        let currentFolderPath = 'image/'; // Mặc định
+
+        // --- NAME PROCESSING ---
+        function handleEnter(e) {
+            if(e.key === 'Enter') processUserName();
+        }
+
+        async function processUserName() {
+            const nameInput = document.getElementById('user-name-input');
+            const name = nameInput.value.trim();
+            
+            // UI Transition
+            document.getElementById('name-input-container').style.display = 'none';
+            document.getElementById('loading-text').innerText = "SEARCHING FOR MEMORIES...";
+            document.getElementById('error-msg').style.display = 'none';
+
+            if (name) {
+                // Nếu nhập tên, tìm trong folder con
+                currentFolderPath = `image/${name}/`;
+            } else {
+                // Nếu để trống, dùng folder mặc định
+                currentFolderPath = 'image/';
+            }
+
+            console.log("Scanning path:", currentFolderPath);
+            await scanImages(currentFolderPath);
+        }
+
+        function resetInput() {
+            document.getElementById('error-msg').style.display = 'none';
+            document.getElementById('loading-text').innerText = "WHO IS THIS GIFT FOR?";
+            document.getElementById('loading-text').style.display = 'block';
+            document.getElementById('name-input-container').style.display = 'flex';
+            document.getElementById('user-name-input').value = "";
+            document.getElementById('user-name-input').focus();
+        }
 
         // --- SCANNING ---
-        function scanImages() {
+        function scanImages(folderPath) {
             return new Promise((resolve) => {
                 const maxImagesToCheck = 50;
-                const folderPath = 'image/'; 
                 let currentIndex = 1;
                 let consecutiveErrors = 0;
                 let pendingImages = 0;
                 const extensions = ['.jpg', '.png', '.jpeg'];
+                
+                // Reset mảng ảnh
+                loadedPhotos = [];
 
                 const tryLoadImage = (index) => {
                     if (index > maxImagesToCheck || consecutiveErrors >= 3) {
@@ -229,7 +319,13 @@
                     if (loadedPhotos.length === 0) {
                         loadingText.style.display = 'none';
                         errDiv.style.display = 'block';
-                        errDiv.innerHTML = `⚠️ IMAGE FOLDER EMPTY<br>Please check 'image/' folder.`;
+                        // Hiển thị lỗi cụ thể
+                        errDiv.innerHTML = `
+                            ⚠️ KHÔNG TÌM THẤY ẢNH TẠI: <b>${folderPath}</b><br><br>
+                            1. Tạo folder tên <b>${folderPath.replace('image/','').replace('/','')}</b> trong folder 'image'.<br>
+                            2. Thêm ảnh (1.jpg, 2.jpg...).<br>
+                            <button id="try-again-btn" onclick="resetInput()">THỬ LẠI</button>
+                        `;
                     } else {
                         loadingText.innerText = "CHOOSE EXPERIENCE";
                         modeSel.style.display = 'flex';
@@ -437,13 +533,13 @@
 
             const c2 = document.createElement('canvas'); c2.width=1024; c2.height=256;
             const ctx2 = c2.getContext('2d');
-            // Cập nhật text mới: Chữ đậm hơn, viền sáng, font Pacifico cho dễ đọc
+            // Cập nhật text mới
             ctx2.font='bold 110px "Pacifico", cursive'; 
             ctx2.fillStyle='#FF3366'; 
             ctx2.textAlign='center';
             ctx2.shadowColor="#FF0033"; 
-            ctx2.shadowBlur=40; // Tăng độ bóng
-            ctx2.lineWidth = 4; // Thêm viền
+            ctx2.shadowBlur=40; 
+            ctx2.lineWidth = 4;
             ctx2.strokeStyle = '#FFFFFF';
             ctx2.strokeText("Merry Hẹ Hẹ ♥", 512, 130);
             ctx2.fillText("Merry Hẹ Hẹ ♥", 512, 130);
@@ -496,7 +592,6 @@
             if (state === 'EXPLODE') {
                 const centerThreshold = 0.15;
                 const offset = handX - 0.5;
-                // If hand is far from center and not hovering, rotate ring
                 if (Math.abs(offset) > centerThreshold && !isHoveringPhoto) {
                     group.rotation.y += offset * 0.08; 
                 }
@@ -622,13 +717,19 @@
         }
 
         function exitToMenu() {
+            // Stop logic
             inputMode = 'none';
             document.getElementById('camera-container').style.display = 'none';
+            
+            // Reset UI to input screen
+            resetInput();
             document.getElementById('intro-screen').style.display = 'flex';
             document.getElementById('ui-layer').style.display = 'none';
             document.getElementById('back-btn').style.display = 'none';
             document.getElementById('heart-btn').style.display = 'none';
+            document.getElementById('mode-selection').style.display = 'none'; // Hide mode selection
             
+            // Clear canvas
             const container = document.getElementById('canvas-container');
             container.innerHTML = '';
             
@@ -674,7 +775,6 @@
             hands.onResults(results => {
                 if(inputMode !== 'camera') return; 
                 const ctx = document.getElementById('camera-preview').getContext('2d');
-                // Canvas size is now set by CSS (200x112), clear and draw accordingly
                 ctx.canvas.width = 200; ctx.canvas.height = 112;
                 ctx.clearRect(0,0, 200, 112); ctx.drawImage(results.image, 0, 0, 200, 112);
 
@@ -712,7 +812,8 @@
             await cameraObj.start();
         }
         
-        scanImages(); 
+        // Removed auto scanImages() call to force name input
+        // scanImages(); 
 
         window.addEventListener('resize', () => {
             if(camera) {
